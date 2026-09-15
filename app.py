@@ -13,7 +13,6 @@ def home():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-
     if request.method == "POST":
 
         username = request.form["username"]
@@ -21,7 +20,6 @@ def login():
         role = request.form["role"]
 
         if username == "admin" and password == "admin123":
-
             session["username"] = username
             session["role"] = role
 
@@ -37,7 +35,6 @@ def login():
 
 @app.route("/dashboard")
 def dashboard():
-
     if "username" not in session:
         return redirect("/login")
 
@@ -50,17 +47,10 @@ def dashboard():
 
 @app.route("/logout")
 def logout():
-
     session.clear()
-
     return redirect("/login")
 
 
 if __name__ == "__main__":
-
     port = int(os.environ.get("PORT", 5000))
-
-    app.run(
-        host="0.0.0.0",
-        port=port
-    )
+    app.run(host="0.0.0.0", port=port)
