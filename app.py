@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, session
 import os
-
+import psycopg2
 app = Flask(__name__)
 
 app.secret_key = "change-this-secret-key"
