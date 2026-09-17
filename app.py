@@ -43,7 +43,14 @@ def dashboard():
         username=session["username"],
         role=session["role"]
     )
-
+@app.route("/db-test")
+def db_test():
+    try:
+        conn = psycopg2.connect(os.environ["DATABASE_URL"])
+        conn.close()
+        return "Database connection successful ✅"
+    except Exception as e:
+        return f"Database connection failed ❌: {e}"
 
 @app.route("/logout")
 def logout():
