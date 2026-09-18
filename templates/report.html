@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="am">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Report Stolen Phone</title>
+    <title>የተሰረቀ ስልክ ሪፖርት</title>
 
     <style>
         body {
@@ -11,6 +11,7 @@
             background: #f2f4f7;
             margin: 0;
             padding: 30px;
+            direction: rtl;
         }
 
         .container {
@@ -32,17 +33,20 @@
             font-weight: bold;
         }
 
-        input, textarea {
+        input,
+        textarea {
             width: 100%;
             padding: 12px;
             margin-top: 6px;
             box-sizing: border-box;
             border: 1px solid #ccc;
             border-radius: 6px;
+            direction: rtl;
         }
 
         textarea {
             height: 100px;
+            resize: vertical;
         }
 
         button {
@@ -57,11 +61,16 @@
             cursor: pointer;
         }
 
+        button:hover {
+            background: #bb2d3b;
+        }
+
         .success {
             background: #d4edda;
             color: #155724;
             padding: 12px;
             border-radius: 6px;
+            margin-bottom: 15px;
         }
 
         .error {
@@ -69,12 +78,14 @@
             color: #721c24;
             padding: 12px;
             border-radius: 6px;
+            margin-bottom: 15px;
         }
 
         .back {
             display: block;
             text-align: center;
             margin-top: 15px;
+            text-decoration: none;
         }
     </style>
 </head>
@@ -83,7 +94,7 @@
 
 <div class="container">
 
-    <h1>📱 Report Stolen Phone</h1>
+    <h1>📱 የተሰረቀ ስልክ ሪፖርት</h1>
 
     {% if success %}
         <div class="success">
@@ -97,37 +108,37 @@
         </div>
     {% endif %}
 
-    <form method="POST">
+    <form method="POST" action="/report">
 
-        <label>Owner Name</label>
+        <label>የባለቤቱ ስም</label>
         <input type="text" name="owner_name" required>
 
-        <label>Phone Number</label>
+        <label>የስልክ ቁጥር</label>
         <input type="text" name="phone_number">
 
-        <label>Phone Model</label>
+        <label>የስልክ ሞዴል</label>
         <input type="text" name="phone_model">
 
-        <label>IMEI Number</label>
+        <label>IMEI ቁጥር</label>
         <input type="text" name="imei" required>
 
-        <label>Date Stolen</label>
+        <label>የተሰረቀበት ቀን</label>
         <input type="date" name="date_stolen">
 
-        <label>Location</label>
+        <label>የተሰረቀበት ቦታ</label>
         <input type="text" name="location">
 
-        <label>Description</label>
+        <label>ተጨማሪ መግለጫ</label>
         <textarea name="description"></textarea>
 
         <button type="submit">
-            🚨 Submit Stolen Phone Report
+            🚨 የስርቆት ሪፖርት አስገባ
         </button>
 
     </form>
 
     <a class="back" href="/dashboard">
-        ← Back to Dashboard
+        ← ወደ Dashboard ተመለስ
     </a>
 
 </div>
