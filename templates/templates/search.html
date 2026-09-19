@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>IMEI Search - Stolen Phone Recovery System</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f4f7;
+            margin: 0;
+            padding: 30px;
+            direction: rtl;
+        }
+
+        .container {
+            max-width: 650px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-top: 6px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            direction: ltr;
+        }
+
+        button {
+            width: 100%;
+            padding: 13px;
+            margin-top: 20px;
+            border: none;
+            border-radius: 6px;
+            background: #0d6efd;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0b5ed7;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .result p {
+            margin: 10px 0;
+        }
+
+        .back {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>🔍 በ IMEI ቁጥር ፈልግ</h1>
+
+    <form method="POST" action="/search">
+
+        <label>IMEI ቁጥር</label>
+
+        <input
+            type="text"
+            name="imei"
+            placeholder="IMEI ቁጥር እዚህ ያስገቡ"
+            required
+        >
+
+        <button type="submit">
+            🔍 ፈልግ
+        </button>
+
+    </form>
+
+
+    {% if error %}
+        <div class="error">
+            {{ error }}
+        </div>
+    {% endif %}
+
+
+    {% if phone %}
+
+        <div class="success">
+            ✅ የስልኩ መረጃ ተገኝቷል
+        </div>
+
+        <div class="result">
+
+            <p><strong>የባለቤቱ ስም:</strong> {{ phone[1] }}</p>
+
+            <p><strong>የስልክ ቁጥር:</strong> {{ phone[2] }}</p>
+
+            <p><strong>የስልክ ሞዴል:</strong> {{ phone[3] }}</p>
+
+            <p><strong>IMEI:</strong> {{ phone[4] }}</p>
+
+            <p><strong>የተሰረቀበት ቀን:</strong> {{ phone[5] }}</p>
+
+            <p><strong>የተሰረቀበት ቦታ:</strong> {{ phone[6] }}</p>
+
+            <p><strong>መግለጫ:</strong> {{ phone[7] }}</p>
+
+            <p><strong>ሁኔታ:</strong> {{ phone[8] }}</p>
+
+            <p><strong>የተመዘገበበት ጊዜ:</strong> {{ phone[9] }}</p>
+
+        </div>
+
+    {% endif %}
+
+
+    <a class="back" href="/dashboard">
+        ← ወደ Dashboard ተመለስ
+    </a>
+
+</div>
+
+</body>
+</html>
