@@ -42,6 +42,16 @@ def create_table():
 
 
 # =========================
+# CREATE TABLE WHEN APP STARTS
+# =========================
+try:
+    create_table()
+    print("Database table ready ✅")
+except Exception as e:
+    print("Database table error:", e)
+
+
+# =========================
 # HOME
 # =========================
 @app.route("/")
@@ -57,9 +67,9 @@ def login():
 
     if request.method == "POST":
 
-        username = request.form["username"]
-        password = request.form["password"]
-        role = request.form["role"]
+        username = request.form.get("username")
+        password = request.form.get("password")
+        role = request.form.get("role")
 
         if username == "admin" and password == "admin123":
 
@@ -238,13 +248,6 @@ def logout():
 # START APP
 # =========================
 if __name__ == "__main__":
-
-    try:
-        create_table()
-        print("Database table ready ✅")
-
-    except Exception as e:
-        print("Database table error:", e)
 
     port = int(os.environ.get("PORT", 5000))
 
