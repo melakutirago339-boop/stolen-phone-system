@@ -1,0 +1,75 @@
+# =========================
+# REGISTER PHONE
+# =========================
+@app.route("/register", methods=["GET", "POST"])
+def register():
+
+    if "username" not in session:
+        return redirect("/login")
+
+    if request.method == "POST":
+
+        owner_name = request.form.get("owner_name")
+        phone_number = request.form.get("phone_number")
+        phone_model = request.form.get("phone_model")
+        imei = request.form.get("imei")
+        date_registered = request.form.get("date_registered")
+        description = request.form.get("description")
+
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor()
+
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS registered_phones (
+                    id SERIAL PRIMARY KEY,
+                    owner_name VARCHAR(100) NOT NULL,
+                    phone_number VARCHAR(50),
+                    phone_model VARCHAR(100) NOT NULL,
+                    imei VARCHAR(50) NOT NULL UNIQUE,
+                    date_registered DATE,
+                    description TEXT,
+                    status VARCHAR(30) DEFAULT 'Registered',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            cur.execute("""
+                INSERT INTO registered_phones
+                (owner_name, phone_number, phone_model, imei,
+                 date_registered, description)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (
+                owner_name,
+                phone_number,
+                phone_model,
+                imei,
+                date_registered,
+                description
+            ))
+
+            conn.commit()
+
+            cur.close()
+            conn.close()
+
+            return render_template(
+                "register.html",
+                success="Phone registered successfully ✅"
+            )
+
+        except psycopg2.errors.UniqueViolation:
+
+            return render_template(
+                "register.html",
+                error="This IMEI is already registered ❌"
+            )
+
+        except Exception as e:
+
+            return render_template(
+                "register.html",
+                error=f"Database error ❌: {e}"
+            )
+
+    return render_template("register.html")
