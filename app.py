@@ -3,7 +3,6 @@ import os
 import psycopg2
 
 app = Flask(__name__)
-
 app.secret_key = "change-this-secret-key"
 
 
@@ -15,9 +14,9 @@ def get_db_connection():
 
 
 # =========================
-# CREATE DATABASE TABLE
+# CREATE DATABASE TABLES
 # =========================
-def create_table():
+def create_tables():
     conn = get_db_connection()
     cur = conn.cursor()
 
@@ -25,13 +24,48 @@ def create_table():
         CREATE TABLE IF NOT EXISTS stolen_phones (
             id SERIAL PRIMARY KEY,
             owner_name VARCHAR(100) NOT NULL,
-            phone_number VARCHAR(30),
+            phone_number VARCHAR(50),
             phone_model VARCHAR(100),
             imei VARCHAR(50) NOT NULL UNIQUE,
             date_stolen DATE,
-            location VARCHAR(200),
+            location TEXT,
             description TEXT,
             status VARCHAR(30) DEFAULT 'Stolen',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS registered_phones (
+            id SERIAL PRIMARY KEY,
+            owner_name VARCHAR(100) NOT NULL,
+            phone_number VARCHAR(50),
+            phone_model VARCHAR(100),
+            imei VARCHAR(50) NOT NULL UNIQUE,
+            phone_color VARCHAR(50),
+            description TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS cases (
+            id SERIAL PRIMARY KEY,
+            imei VARCHAR(50) NOT NULL,
+            case_number VARCHAR(100),
+            officer_name VARCHAR(100),
+            case_status VARCHAR(50) DEFAULT 'Open',
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS authorized_locations (
+            id SERIAL PRIMARY KEY,
+            location_name VARCHAR(150) NOT NULL,
+            address TEXT,
+            description TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
@@ -42,11 +76,11 @@ def create_table():
 
 
 # =========================
-# CREATE TABLE WHEN APP STARTS
+# START DATABASE
 # =========================
 try:
-    create_table()
-    print("Database table ready ✅")
+    create_tables()
+    print("Database tables ready ✅")
 except Exception as e:
     print("Database table error:", e)
 
@@ -69,7 +103,7 @@ def login():
 
         username = request.form.get("username")
         password = request.form.get("password")
-        role = request.form.get("role")
+        role = request.form.get("role", "admin")
 
         if username == "admin" and password == "admin123":
 
@@ -117,6 +151,70 @@ def db_test():
     except Exception as e:
 
         return f"Database connection failed ❌: {e}"
+
+
+# =========================
+# REGISTER PHONE
+# =========================
+@app.route("/register", methods=["GET", "POST"])
+def register():
+
+    if "username" not in session:
+        return redirect("/login")
+
+    if request.method == "POST":
+
+        owner_name = request.form.get("owner_name")
+        phone_number = request.form.get("phone_number")
+        phone_model = request.form.get("phone_model")
+        imei = request.form.get("imei")
+        phone_color = request.form.get("phone_color")
+        description = request.form.get("description")
+
+        try:
+
+            conn = get_db_connection()
+            cur = conn.cursor()
+
+            cur.execute("""
+                INSERT INTO registered_phones
+                (owner_name, phone_number, phone_model,
+                 imei, phone_color, description)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (
+                owner_name,
+                phone_number,
+                phone_model,
+                imei,
+                phone_color,
+                description
+            ))
+
+            conn.commit()
+
+            cur.close()
+            conn.close()
+
+            return render_template(
+                "register_phone.html",
+                success="Phone registered successfully ✅"
+            )
+
+        except psycopg2.errors.UniqueViolation:
+
+            return render_template(
+                "register_phone.html",
+                error="This IMEI is already registered ❌"
+            )
+
+        except Exception as e:
+
+            return render_template(
+                "register_phone.html",
+                error=f"Database error ❌: {e}"
+            )
+
+    return render_template("register_phone.html")
 
 
 # =========================
@@ -231,6 +329,157 @@ def search():
         phone=phone,
         error=error
     )
+
+
+# =========================
+# CASE MANAGEMENT
+# =========================
+@app.route("/cases", methods=["GET", "POST"])
+def cases():
+
+    if "username" not in session:
+        return redirect("/login")
+
+    message = None
+    error = None
+
+    if request.method == "POST":
+
+        imei = request.form.get("imei")
+        case_number = request.form.get("case_number")
+        officer_name = request.form.get("officer_name")
+        case_status = request.form.get("case_status")
+        notes = request.form.get("notes")
+
+        try:
+
+            conn = get_db_connection()
+            cur = conn.cursor()
+
+            cur.execute("""
+                INSERT INTO cases
+                (imei, case_number, officer_name, case_status, notes)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (
+                imei,
+                case_number,
+                officer_name,
+                case_status,
+                notes
+            ))
+
+            conn.commit()
+
+            cur.close()
+            conn.close()
+
+            message = "Case saved successfully ✅"
+
+        except Exception as e:
+
+            error = f"Database error ❌: {e}"
+
+    return render_template(
+        "cases.html",
+        message=message,
+        error=error
+    )
+
+
+# =========================
+# AUTHORIZED LOCATION
+# =========================
+@app.route("/location", methods=["GET", "POST"])
+def location():
+
+    if "username" not in session:
+        return redirect("/login")
+
+    message = None
+    error = None
+
+    if request.method == "POST":
+
+        location_name = request.form.get("location_name")
+        address = request.form.get("address")
+        description = request.form.get("description")
+
+        try:
+
+            conn = get_db_connection()
+            cur = conn.cursor()
+
+            cur.execute("""
+                INSERT INTO authorized_locations
+                (location_name, address, description)
+                VALUES (%s, %s, %s)
+            """, (
+                location_name,
+                address,
+                description
+            ))
+
+            conn.commit()
+
+            cur.close()
+            conn.close()
+
+            message = "Location saved successfully ✅"
+
+        except Exception as e:
+
+            error = f"Database error ❌: {e}"
+
+    return render_template(
+        "location.html",
+        message=message,
+        error=error
+    )
+
+
+# =========================
+# REPORTS
+# =========================
+@app.route("/reports")
+def reports():
+
+    if "username" not in session:
+        return redirect("/login")
+
+    try:
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute("SELECT COUNT(*) FROM registered_phones")
+        registered_count = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM stolen_phones")
+        stolen_count = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM cases")
+        cases_count = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM authorized_locations")
+        location_count = cur.fetchone()[0]
+
+        cur.close()
+        conn.close()
+
+        return render_template(
+            "reports.html",
+            registered_count=registered_count,
+            stolen_count=stolen_count,
+            cases_count=cases_count,
+            location_count=location_count
+        )
+
+    except Exception as e:
+
+        return render_template(
+            "reports.html",
+            error=f"Database error ❌: {e}"
+        )
 
 
 # =========================
