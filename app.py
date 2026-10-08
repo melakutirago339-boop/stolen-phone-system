@@ -156,8 +156,8 @@ def db_test():
 # =========================
 # REGISTER PHONE
 # =========================
+@app.route("/register_phone", methods=["GET", "POST"])
 @app.route("/register", methods=["GET", "POST"])
-def register():
 
     if "username" not in session:
         return redirect("/login")
@@ -220,8 +220,8 @@ def register():
 # =========================
 # REPORT STOLEN PHONE
 # =========================
+@app.route("/report_stolen", methods=["GET", "POST"])
 @app.route("/report", methods=["GET", "POST"])
-def report():
 
     if "username" not in session:
         return redirect("/login")
