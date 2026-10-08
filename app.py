@@ -1,25 +1,51 @@
+```python
 from flask import Flask, render_template, request, redirect, session
 import os
 import psycopg2
 
 app = Flask(__name__)
-app.secret_key = "change-this-secret-key"
+
+# =========================
+# SECRET KEY
+# =========================
+app.secret_key = os.environ.get(
+    "SECRET_KEY",
+    "stolen-phone-system-secret-key"
+)
 
 
 # =========================
 # DATABASE CONNECTION
 # =========================
 def get_db_connection():
-    return psycopg2.connect(os.environ["DATABASE_URL"])
+    return psycopg2.connect(
+        os.environ["DATABASE_URL"]
+    )
 
 
 # =========================
 # CREATE DATABASE TABLES
 # =========================
 def create_tables():
+
     conn = get_db_connection()
     cur = conn.cursor()
 
+    # Registered phones
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS registered_phones (
+            id SERIAL PRIMARY KEY,
+            owner_name VARCHAR(100) NOT NULL,
+            phone_number VARCHAR(50),
+            phone_model VARCHAR(100),
+            imei VARCHAR(50) NOT NULL UNIQUE,
+            phone_color VARCHAR(50),
+            description TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # Stolen phones
     cur.execute("""
         CREATE TABLE IF NOT EXISTS stolen_phones (
             id SERIAL PRIMARY KEY,
@@ -35,19 +61,7 @@ def create_tables():
         )
     """)
 
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS registered_phones (
-            id SERIAL PRIMARY KEY,
-            owner_name VARCHAR(100) NOT NULL,
-            phone_number VARCHAR(50),
-            phone_model VARCHAR(100),
-            imei VARCHAR(50) NOT NULL UNIQUE,
-            phone_color VARCHAR(50),
-            description TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-
+    # Cases
     cur.execute("""
         CREATE TABLE IF NOT EXISTS cases (
             id SERIAL PRIMARY KEY,
@@ -60,6 +74,7 @@ def create_tables():
         )
     """)
 
+    # Authorized locations
     cur.execute("""
         CREATE TABLE IF NOT EXISTS authorized_locations (
             id SERIAL PRIMARY KEY,
@@ -71,6 +86,7 @@ def create_tables():
     """)
 
     conn.commit()
+
     cur.close()
     conn.close()
 
@@ -81,6 +97,7 @@ def create_tables():
 try:
     create_tables()
     print("Database tables ready ✅")
+
 except Exception as e:
     print("Database table error:", e)
 
@@ -90,6 +107,10 @@ except Exception as e:
 # =========================
 @app.route("/")
 def home():
+
+    if "username" in session:
+        return redirect("/dashboard")
+
     return redirect("/login")
 
 
@@ -105,6 +126,7 @@ def login():
         password = request.form.get("password")
         role = request.form.get("role", "admin")
 
+        # Demo login
         if username == "admin" and password == "admin123":
 
             session["username"] = username
@@ -114,7 +136,7 @@ def login():
 
         return render_template(
             "login.html",
-            error="Invalid username or password"
+            error="Invalid username or password ❌"
         )
 
     return render_template("login.html")
@@ -143,7 +165,13 @@ def dashboard():
 def db_test():
 
     try:
+
         conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute("SELECT 1")
+
+        cur.close()
         conn.close()
 
         return "Database connection successful ✅"
@@ -158,6 +186,7 @@ def db_test():
 # =========================
 @app.route("/register_phone", methods=["GET", "POST"])
 @app.route("/register", methods=["GET", "POST"])
+def register_phone():
 
     if "username" not in session:
         return redirect("/login")
@@ -178,8 +207,14 @@ def db_test():
 
             cur.execute("""
                 INSERT INTO registered_phones
-                (owner_name, phone_number, phone_model,
-                 imei, phone_color, description)
+                (
+                    owner_name,
+                    phone_number,
+                    phone_model,
+                    imei,
+                    phone_color,
+                    description
+                )
                 VALUES (%s, %s, %s, %s, %s, %s)
             """, (
                 owner_name,
@@ -222,6 +257,7 @@ def db_test():
 # =========================
 @app.route("/report_stolen", methods=["GET", "POST"])
 @app.route("/report", methods=["GET", "POST"])
+def report_stolen():
 
     if "username" not in session:
         return redirect("/login")
@@ -243,8 +279,15 @@ def db_test():
 
             cur.execute("""
                 INSERT INTO stolen_phones
-                (owner_name, phone_number, phone_model, imei,
-                 date_stolen, location, description)
+                (
+                    owner_name,
+                    phone_number,
+                    phone_model,
+                    imei,
+                    date_stolen,
+                    location,
+                    description
+                )
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (
                 owner_name,
@@ -270,7 +313,7 @@ def db_test():
 
             return render_template(
                 "report.html",
-                error="This IMEI is already registered ❌"
+                error="This IMEI is already reported ❌"
             )
 
         except Exception as e:
@@ -287,6 +330,7 @@ def db_test():
 # SEARCH BY IMEI
 # =========================
 @app.route("/search", methods=["GET", "POST"])
+@app.route("/search_imei", methods=["GET", "POST"])
 def search():
 
     if "username" not in session:
@@ -304,21 +348,51 @@ def search():
             conn = get_db_connection()
             cur = conn.cursor()
 
+            # First search stolen phone
             cur.execute("""
-                SELECT id, owner_name, phone_number, phone_model,
-                       imei, date_stolen, location, description,
-                       status, created_at
+                SELECT
+                    id,
+                    owner_name,
+                    phone_number,
+                    phone_model,
+                    imei,
+                    date_stolen,
+                    location,
+                    description,
+                    status,
+                    created_at
                 FROM stolen_phones
                 WHERE imei = %s
             """, (imei,))
 
             phone = cur.fetchone()
 
+            # If not stolen, search registered phone
+            if phone is None:
+
+                cur.execute("""
+                    SELECT
+                        id,
+                        owner_name,
+                        phone_number,
+                        phone_model,
+                        imei,
+                        NULL,
+                        NULL,
+                        description,
+                        'Registered',
+                        created_at
+                    FROM registered_phones
+                    WHERE imei = %s
+                """, (imei,))
+
+                phone = cur.fetchone()
+
             cur.close()
             conn.close()
 
             if phone is None:
-                error = "No stolen phone found with this IMEI ❌"
+                error = "No phone found with this IMEI ❌"
 
         except Exception as e:
 
@@ -348,7 +422,7 @@ def cases():
         imei = request.form.get("imei")
         case_number = request.form.get("case_number")
         officer_name = request.form.get("officer_name")
-        case_status = request.form.get("case_status")
+        case_status = request.form.get("case_status", "Open")
         notes = request.form.get("notes")
 
         try:
@@ -358,7 +432,13 @@ def cases():
 
             cur.execute("""
                 INSERT INTO cases
-                (imei, case_number, officer_name, case_status, notes)
+                (
+                    imei,
+                    case_number,
+                    officer_name,
+                    case_status,
+                    notes
+                )
                 VALUES (%s, %s, %s, %s, %s)
             """, (
                 imei,
@@ -411,7 +491,11 @@ def location():
 
             cur.execute("""
                 INSERT INTO authorized_locations
-                (location_name, address, description)
+                (
+                    location_name,
+                    address,
+                    description
+                )
                 VALUES (%s, %s, %s)
             """, (
                 location_name,
@@ -451,16 +535,24 @@ def reports():
         conn = get_db_connection()
         cur = conn.cursor()
 
-        cur.execute("SELECT COUNT(*) FROM registered_phones")
+        cur.execute(
+            "SELECT COUNT(*) FROM registered_phones"
+        )
         registered_count = cur.fetchone()[0]
 
-        cur.execute("SELECT COUNT(*) FROM stolen_phones")
+        cur.execute(
+            "SELECT COUNT(*) FROM stolen_phones"
+        )
         stolen_count = cur.fetchone()[0]
 
-        cur.execute("SELECT COUNT(*) FROM cases")
+        cur.execute(
+            "SELECT COUNT(*) FROM cases"
+        )
         cases_count = cur.fetchone()[0]
 
-        cur.execute("SELECT COUNT(*) FROM authorized_locations")
+        cur.execute(
+            "SELECT COUNT(*) FROM authorized_locations"
+        )
         location_count = cur.fetchone()[0]
 
         cur.close()
@@ -498,9 +590,12 @@ def logout():
 # =========================
 if __name__ == "__main__":
 
-    port = int(os.environ.get("PORT", 5000))
+    port = int(
+        os.environ.get("PORT", 5000)
+    )
 
     app.run(
         host="0.0.0.0",
         port=port
     )
+```
