@@ -14,7 +14,6 @@ app.secret_key = os.environ.get(
     "stolen-phone-demo-secret-key"
 )
 
-
 # -------------------------------------------------
 # DATABASE CONNECTION
 # -------------------------------------------------
