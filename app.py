@@ -159,8 +159,6 @@ def login():
 # DASHBOARD
 # -------------------------------------------------
 
-
-
 @app.route("/dashboard")
 def dashboard():
     if "username" not in session:
